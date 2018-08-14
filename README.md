@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/gabriel-a/download-manager.svg?style=svg)](https://circleci.com/gh/gabriel-a/download-manager)
+
 # Download manager
 
 Is an application to download files from remote servers, FTP/SFTP or HTTP urls.
