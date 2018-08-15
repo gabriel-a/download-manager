@@ -9,9 +9,13 @@ import com.download.model.DestinationModel
 
 import scala.collection.mutable.ListBuffer
 
-object GenerateActors {
+trait MainService {
+  def apply() : List[ActorRef] = GenerateActors.apply()
+}
+
+object GenerateActors extends MainService{
   val logger = Logger(this.getClass.getSimpleName)
-  def apply() = prepareApplicationAndCreateActors(AppConf.apply())
+  override def apply(): List[ActorRef] = prepareApplicationAndCreateActors(AppConf.apply())
 
   private def prepareApplicationAndCreateActors(appConf : AppConf) ={
     createActors(appConf.providers, appConf.destination)
@@ -23,7 +27,7 @@ object GenerateActors {
       .filter(provider => ProviderProtocolType.isSupported(provider.protocol))
       .foreach(provider => {
         val actorName = getActorName(provider)
-        val system = ActorSystem(s"system-$actorName")
+        val system = ActorSystem(AppConf.DownloadManagerActorSystemName)
         provider.protocol match {
           case ProviderProtocolType.FTP | ProviderProtocolType.FTPS | ProviderProtocolType.SFTP => {
             logger.info(s"Start FTP/FTPS/SFTP Actor")

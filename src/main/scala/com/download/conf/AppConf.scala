@@ -20,6 +20,7 @@ case class ProviderConfig(id: String,
 case class AppConf(providers: List[ProviderConfig], destination: DestinationModel)
 
 object AppConf {
+  val DownloadManagerActorSystemName = "download-manager"
   def apply(): AppConf = apply(ConfigFactory.load.getConfig("app-conf"))
 
   def apply(config: Config): AppConf = {

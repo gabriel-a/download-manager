@@ -4,6 +4,7 @@ import java.io.PrintWriter
 import java.net.InetAddress
 
 import akka.NotUsed
+import akka.event.jul.Logger
 import akka.stream.IOResult
 import akka.stream.alpakka.ftp.FtpCredentials.{AnonFtpCredentials, NonAnonFtpCredentials}
 import akka.stream.alpakka.ftp.scaladsl.{Ftp, Ftps, Sftp}
@@ -18,35 +19,24 @@ import scala.concurrent.Future
 
 class FtpRemoteSettings(provider : ProviderConfig, destinationModel: DestinationModel) {
 
+  val logger = Logger(this.getClass.getSimpleName)
   val ftpSettings = getFtpSetting()
   val sftpSettings = getSftpSettings()
   val ftpsSettings = getFtpsSetting()
 
   def fromPath(filePath: String): Source[ByteString, Future[IOResult]] = {
     provider.protocol match {
-      case ProviderProtocolType.SFTP => {
-        Sftp.fromPath(filePath, sftpSettings)
-      }
-      case ProviderProtocolType.FTPS => {
-        Ftps.fromPath(filePath, ftpsSettings)
-      }
-      case ProviderProtocolType.FTP => {
-        Ftp.fromPath(filePath, ftpSettings)
-      }
+      case ProviderProtocolType.SFTP => Sftp.fromPath(filePath, sftpSettings)
+      case ProviderProtocolType.FTPS => Ftps.fromPath(filePath, ftpsSettings)
+      case ProviderProtocolType.FTP => Ftp.fromPath(filePath, ftpSettings)
     }
   }
 
   def ls(path: String): Source[FtpFile, NotUsed] = {
     provider.protocol match {
-      case ProviderProtocolType.SFTP => {
-        Sftp.ls(path, sftpSettings, _=>false)
-      }
-      case ProviderProtocolType.FTPS => {
-        Ftps.ls(path, ftpsSettings, _=>false)
-      }
-      case ProviderProtocolType.FTP => {
-        Ftp.ls(path, ftpSettings, _=>false)
-      }
+      case ProviderProtocolType.SFTP => Sftp.ls(path, sftpSettings, _=>false)
+      case ProviderProtocolType.FTPS => Ftps.ls(path, ftpsSettings, _=>false)
+      case ProviderProtocolType.FTP => Ftp.ls(path, ftpSettings, _=>false)
     }
   }
 

@@ -62,7 +62,7 @@ class FtpActor(val provider: ProviderConfig,
       case Success(value) =>
         log.info(s"Succeeded $value")
       case err =>
-        log.info(s"Error!! $err Will try to process again!")
+        log.error(s"Error!! $err Will try to process again!")
     })
   }
 

@@ -4,8 +4,9 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import com.download.conf.{AppConf, ProviderConfig, ProviderProtocolType}
 import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
+import org.scalatest.mockito.MockitoSugar
 
-class GenerateActorsTest extends TestKit(ActorSystem("MySpec"))
+class MainServiceTest extends TestKit(ActorSystem("MySpec")) with MockitoSugar
   with Matchers
   with FlatSpecLike
   with BeforeAndAfterAll {
@@ -20,7 +21,7 @@ class GenerateActorsTest extends TestKit(ActorSystem("MySpec"))
     val actors = GenerateActors.apply()
 
     //Unknown should not be added as actor
-    assert(actors.size === 4)
+    assert(actors.size === 1)
 
     val actorPaths = actors.map(actor => ""+actor.path)
     assert(providerNames == actorPaths)
@@ -28,7 +29,7 @@ class GenerateActorsTest extends TestKit(ActorSystem("MySpec"))
 
   private def getActorNames(providers: List[ProviderConfig]): List[String] = {
     providers
-      .map(provider => s"akka://system-downloader-${provider.protocol.toString.toLowerCase}-${provider.id}/user/downloader-${provider.protocol.toString.toLowerCase}-${provider.id}".toLowerCase)
+      .map(provider => s"akka://${AppConf.DownloadManagerActorSystemName}/user/downloader-${provider.protocol.toString.toLowerCase}-${provider.id}".toLowerCase)
 
   }
 

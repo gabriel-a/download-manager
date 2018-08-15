@@ -18,5 +18,7 @@ libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.5.14" % Test
 libraryDependencies += "com.typesafe.akka" %% "akka-http-testkit" % "10.1.3" % Test
 libraryDependencies += "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.14" % Test
 libraryDependencies += "com.typesafe.akka" %% "akka-actor-testkit-typed" % "2.5.13" % Test
+libraryDependencies += "org.mockito" % "mockito-core" % "2.21.0" % Test
+libraryDependencies += "org.mockftpserver" % "MockFtpServer" % "2.7.1" % Test
 
 licenses := Seq(("MIT", url("https://github.com/gabriel-a/download-manager/license.md")))
