@@ -2,7 +2,7 @@
 
 # Download manager
 
-Is an application to download files from remote servers, FTP/SFTP or HTTP urls.
+Is an application to download files from remote servers, FTP/SFTP/FTPS or HTTP.
 
 ## Getting Started
 
@@ -36,7 +36,7 @@ Make sure the application.conf has the right values
 | tmp-destination              | The directory that the files are streamed or downloaded to. (Not completed) |
 | providers                    | List of providers to connect to                                             |
 | - uid                        | Important to be unique, it will be created as a directory on your system    |
-| - protocol                   | The protocol: Currently it supports (HTTP, FTP, FTPS)                       |
+| - protocol                   | The protocol: Currently it supports (HTTP, FTP, FTPS, SFTP)                 |
 | - host                       | The Host to connect to                                                      |
 | - base-path                  | Host base path                                                              |
 | - interval                   | Check the host every (x seconds)                                            |
