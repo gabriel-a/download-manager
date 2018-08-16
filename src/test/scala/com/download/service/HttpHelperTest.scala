@@ -69,7 +69,7 @@ class HttpHelperTest extends FlatSpec {
   }
 
   "Url parsing " should " return an in-valid url (Empty list)" in {
-    val url = "http://localhost/"
+    val url = "http://xyz/"
     val allowed = List("*")
     val username = ""
     val password = ""

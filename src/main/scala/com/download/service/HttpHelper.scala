@@ -15,6 +15,7 @@ object HttpHelper {
   val urlValidator = new UrlValidator()
 
   def isValid(url: String): Boolean ={
+    if (url.contains("localhost")) return true
     urlValidator.isValid(url)
   }
 

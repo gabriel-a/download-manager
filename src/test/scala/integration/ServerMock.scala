@@ -1,12 +1,16 @@
 package integration
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream}
 import java.util
 
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock._
 import com.jcraft.jsch.{ChannelSftp, JSch}
-import org.mockftpserver.fake.{FakeFtpServer, UserAccount}
 import org.mockftpserver.fake.filesystem.{FileEntry, UnixFakeFileSystem}
+import org.mockftpserver.fake.{FakeFtpServer, UserAccount}
 import software.sham.sftp.MockSftpServer
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 
 trait ServerMock{
   def start()
@@ -75,5 +79,38 @@ class SFtpServerMock(sftpPort: Int) extends ServerMock{
 
   def stop(): Unit ={
     sshd.stop()
+  }
+}
+
+class HttpServerMock(httpPort: Int) extends ServerMock {
+  var wireMockServer: WireMockServer = new WireMockServer(
+    wireMockConfig()
+      .withRootDirectory("src/test/resources/test-files")
+      .port(httpPort)
+  )
+
+  override def start(): Unit = {
+    wireMockServer.start()
+    WireMock.configureFor("localhost", httpPort)
+    addFiles()
+  }
+
+  override def addFiles(): Unit = {
+    wireMockServer.stubFor(get(urlEqualTo("/testing"))
+      .willReturn(aResponse()
+        .withHeader("Content-Type", "text/plain")
+        .withBodyFile("my-resources.html")))
+
+    wireMockServer.stubFor(get(urlEqualTo("/testing/myfile.xml"))
+      .willReturn(aResponse()
+        .withBodyFile("myfile.xml")))
+
+    wireMockServer.stubFor(get(urlEqualTo("/testing/myfile.json"))
+      .willReturn(aResponse()
+        .withBody("Literal text to put in the body")))
+  }
+
+  override def stop(): Unit = {
+    wireMockServer.stop()
   }
 }

@@ -6,12 +6,13 @@ import com.download.conf.{AppConf, ProviderConfig, ProviderProtocolType}
 import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
 import org.scalatest.mockito.MockitoSugar
 
-class MainServiceTest extends TestKit(ActorSystem("MySpec")) with MockitoSugar
+class MainServiceTest extends TestKit(ActorSystem(AppConf.DownloadManagerActorSystemName)) with MockitoSugar
   with Matchers
   with FlatSpecLike
   with BeforeAndAfterAll {
 
   override def afterAll {
+    println("Stopping all actors")
     TestKit.shutdownActorSystem(system)
   }
 
@@ -21,7 +22,7 @@ class MainServiceTest extends TestKit(ActorSystem("MySpec")) with MockitoSugar
     val actors = GenerateActors.apply()
 
     //Unknown should not be added as actor
-    assert(actors.size === 2)
+    assert(actors.size === 3)
 
     val actorPaths = actors.map(actor => ""+actor.path)
     assert(providerNames == actorPaths)
