@@ -16,18 +16,20 @@ import com.download.service.IOHelper._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Success
+import com.download.model.Reminder._
 
 object FtpActor {
-  def props(provider: ProviderConfig, destinationModel: DestinationModel): Props = Props(new FtpActor(provider, destinationModel))
+  def props(provider: ProviderConfig, destinationModel: DestinationModel): Props =
+    Props(new FtpActor(provider, destinationModel, new FtpRemoteSettings(provider, destinationModel)))
 }
 
 class FtpActor(val provider: ProviderConfig,
-               val destinationModel: DestinationModel) extends Actor with Timers {
+               val destinationModel: DestinationModel,
+               val remoteSettings: FtpRemoteSettings) extends Actor with Timers {
+  implicit val runnableActor: ActorMaterializer = ActorMaterializer()
 
   val log = Logging(context.system, this)
-  import com.download.model.Reminder._
   timers.startSingleTimer(PeriodicKey, FirstTick, 1.millis)
-  implicit val runnableActor: ActorMaterializer = ActorMaterializer()
 
   def receive = {
     case FirstTick ⇒
@@ -38,26 +40,23 @@ class FtpActor(val provider: ProviderConfig,
       val currentDownloadDestination = DestinationModel.getProviderDestinations(provider.id, destinationModel)
       val throttleConnections = provider.maxConcurrentConnections - 1
       val filesOnDisk = listFilesOnDisk(currentDownloadDestination.finalDestination, currentDownloadDestination.tmpDestination)
-      val remoteSettings = new FtpRemoteSettings(provider, destinationModel)
-      val filesOnRemoteServer = getListOfRemoteFiles(provider.basePath,filesOnDisk,remoteSettings)
+      val filesOnRemoteServer = getListOfRemoteFiles(provider.basePath,filesOnDisk)
 
       throttleAndSave(filesOnRemoteServer,
         currentDownloadDestination,
-        throttleConnections,
-        remoteSettings)
+        throttleConnections)
   }
 
   private def throttleAndSave(listOfSource : Source[FtpFile, NotUsed],
                               destination : DestinationModel,
-                              throttleConnections: Int,
-                              remoteSettings: FtpRemoteSettings): Unit ={
+                              throttleConnections: Int): Unit ={
     val runnable: Source[FtpFile, NotUsed] = listOfSource
 
     runnable
       .throttle(elements = throttleConnections, per = 10.second, maximumBurst = throttleConnections, ThrottleMode.shaping)
       .runForeach(file => {
         log.info(s"Found a new file ${file.name}")
-        saveAndMoveFile(file, destination, remoteSettings)
+        saveAndMoveFile(file, destination)
       }).onComplete({
       case Success(value) =>
         log.info(s"Succeeded $value")
@@ -66,7 +65,7 @@ class FtpActor(val provider: ProviderConfig,
     })
   }
 
-  private def saveAndMoveFile(file: FtpFile, destination: DestinationModel, remoteSettings : FtpRemoteSettings): Unit ={
+  private def saveAndMoveFile(file: FtpFile, destination: DestinationModel): Unit ={
     remoteSettings.fromPath(file.path)
       .runWith(FileIO.toPath(Paths.get(destination.tmpDestination+ "/", file.name))).onComplete {
       case Success(IOResult(count, Success(_))) => fileProcessed(destination.tmpDestination, destination.finalDestination, file.name, count)
@@ -77,8 +76,7 @@ class FtpActor(val provider: ProviderConfig,
   }
 
   private def getListOfRemoteFiles(path: String,
-                                   filesOnDisc: List[FileOrDirModel],
-                                   remoteSettings: FtpRemoteSettings): Source[FtpFile, NotUsed] =
+                                   filesOnDisc: List[FileOrDirModel]): Source[FtpFile, NotUsed] =
      remoteSettings.ls(path)
       .filter(_.isFile)
       .filter(file => AppConf.isAllowedExt(file.name, provider.allowedExt))
