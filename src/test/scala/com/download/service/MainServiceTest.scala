@@ -21,7 +21,7 @@ class MainServiceTest extends TestKit(ActorSystem("MySpec")) with MockitoSugar
     val actors = GenerateActors.apply()
 
     //Unknown should not be added as actor
-    assert(actors.size === 1)
+    assert(actors.size === 2)
 
     val actorPaths = actors.map(actor => ""+actor.path)
     assert(providerNames == actorPaths)

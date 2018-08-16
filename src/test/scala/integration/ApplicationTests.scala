@@ -7,46 +7,74 @@ import com.download.conf.{AppConf, ProviderProtocolType}
 import com.download.model.DestinationModel
 import com.download.service.IOHelper
 import org.scalatest._
+import org.awaitility.Awaitility._
+import org.awaitility.core.ConditionTimeoutException
+import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.TimeUnit.MILLISECONDS
 
-class MainApplicationTest extends FunSpec with MustMatchers {
+private class MainApplicationTest extends FunSpec with PrivateMethodTester {
   describe("It must start the application") {
     it("It must create directories & download files") {
+      println("Came to create the Integration test")
       Main.main(Array(""))
-      Thread.sleep(5000)
       var totalTest = 0
       val app = AppConf.apply()
+      await.atMost(500, MILLISECONDS).until(() => new File(app.destination.finalDestination).exists())
       app.providers
         .filter(p => ProviderProtocolType.isSupported(p.protocol))
         .foreach(provider => {
           provider.id match {
             case "FTP-1" => {
-              val currentDestination = DestinationModel.getProviderDestinations (provider.id, app.destination)
-              assert (new File (currentDestination.tmpDestination).listFiles (_.isFile).size == 0)
-              assert (new File (currentDestination.finalDestination).listFiles (_.isFile).size == 2)
+              val localFtpLocation = DestinationModel.getProviderDestinations (provider.id, app.destination)
+              println(localFtpLocation.finalDestination)
+              await.atMost(1, SECONDS).until(() => new File (localFtpLocation.finalDestination).listFiles (_.isFile).size == 2)
+              assert (new File (localFtpLocation.tmpDestination).listFiles (_.isFile).size == 0)
+              assert (new File (localFtpLocation.finalDestination).listFiles (_.isFile).size == 2)
               totalTest += 1
-              IOHelper.removeDestination(currentDestination.tmpDestination)
-              IOHelper.removeDestination(currentDestination.finalDestination)
+              IOHelper.removeDestination(localFtpLocation.tmpDestination)
+              IOHelper.removeDestination(localFtpLocation.finalDestination)
+            }
+            case "SFTP-1" => {
+              val localSftpLocation = DestinationModel.getProviderDestinations (provider.id, app.destination)
+              await.atMost(10, SECONDS).until(() => new File (localSftpLocation.finalDestination).listFiles (_.isFile).size == 3)
+              assert (new File (localSftpLocation.tmpDestination).listFiles (_.isFile).size == 0)
+              assert (new File (localSftpLocation.finalDestination).listFiles (_.isFile).size == 3)
+              totalTest += 1
+              IOHelper.removeDestination(localSftpLocation.tmpDestination)
+              IOHelper.removeDestination(localSftpLocation.finalDestination)
             }
           }
         })
-      assert((totalTest > 0) === true)
+      assert((totalTest == 2) === true)
       Main.killAllActors()
+      //Cleanup
+      IOHelper.removeDestination(app.destination.tmpDestination)
+      IOHelper.removeDestination(app.destination.finalDestination)
     }
   }
 }
 
 class ApplicationTests extends Suites(new MainApplicationTest) with BeforeAndAfterAll {
-  val ftpServerMock = new FtpServerMock(9999, 8006,"test","test123", "/")
+
+  object SftpObject {
+    private val _instance = new SFtpServerMock(9022)
+    def instance() = _instance
+  }
+
+  object FtpObject {
+    private val _instance = new FtpServerMock(9999, "test","test123", "/")
+    def instance() = _instance
+  }
 
   override def beforeAll() {
     println("Before all")
-    ftpServerMock.start()
-    ftpServerMock.addFiles()
+    FtpObject.instance().start()
+    SftpObject.instance().start()
   }
 
-  // Delete the temp file
   override def afterAll() {
     println("After all")
-    ftpServerMock.stop()
+    FtpObject.instance().stop()
+    SftpObject.instance().stop()
   }
 }

@@ -22,11 +22,12 @@ class AppConfTest extends FlatSpec {
     assert(tmpDestinationExists === true)
 
     val listProviders = List(
-      ProviderConfig("FTP-1","localhost", 9999, ProviderProtocolType.FTP,60,5,"/",List(".pdf",".txt",".gz"), "test", "test123"),
+      ProviderConfig("FTP-1","localhost", 9999, ProviderProtocolType.FTP,5,5,"/",List(".pdf",".txt",".gz"), "test", "test123"),
+      ProviderConfig("SFTP-1","localhost", 9022, ProviderProtocolType.SFTP,5,5,"/",List(".pdf",".txt",".gz"), "tester", "testing"),
       ProviderConfig("UNKNOWN-0","localhost", 0, ProviderProtocolType.UNKNOWN,1,1,"/test",List("*"), "", "")
     )
 
-    assert(appConf.providers.length === 2)
+    assert(appConf.providers.length === 3)
     assert(appConf.providers === listProviders)
 
   }

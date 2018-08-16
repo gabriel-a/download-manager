@@ -9,13 +9,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object Main {
 
   private var mainService: MainService = GenerateActors
-  private var actors : List[ActorRef] = List()
   val logger = Logger(this.getClass.getSimpleName)
   private val DownloadManagerActorSystemName = AppConf.DownloadManagerActorSystemName
 
   def main(args: Array[String]): Unit = {
     logger.info("Starting application...")
-    actors = mainService.apply()
+    val actors = mainService.apply()
     logger.info(s"${actors.size} Actors Created and Starting to pull data.")
   }
 
@@ -25,7 +24,8 @@ object Main {
 
   def killAllActors(): Unit = {
     logger.info("Terminating actors...")
-    ActorSystem(DownloadManagerActorSystemName).terminate().onComplete(_ => logger.info(s"Actor system $DownloadManagerActorSystemName terminated."))
+    ActorSystem(DownloadManagerActorSystemName).terminate()
+      .onComplete(_ => logger.info(s"Actor system $DownloadManagerActorSystemName terminated."))
     logger.info("Actors Terminated")
   }
 }

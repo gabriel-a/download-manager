@@ -1,11 +1,10 @@
 package com.download.service
 
 import java.io.File
-import java.nio.file.{Files, Path, Paths}
-import java.util.Comparator
 
 import akka.event.jul.Logger
 import com.download.dto.FileOrDirModel
+import org.apache.commons.io.FileDeleteStrategy
 
 object IOHelper {
   val logger = Logger(this.getClass.getSimpleName)
@@ -29,10 +28,6 @@ object IOHelper {
   }
 
   def removeDestination(link: String) = {
-    val path = Paths.get(link)
-    Files.walk(path)
-      .sorted(Comparator.reverseOrder())
-      .peek(d => logger.info(s"Deleted $d"))
-      .forEach(del => Files.deleteIfExists(del))
+    FileDeleteStrategy.FORCE.delete(new File(link))
   }
 }
