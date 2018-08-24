@@ -4,8 +4,9 @@ object ProviderProtocolType extends Enumeration {
   type ProtocolType = Value
   val HTTP, FTP, FTPS, SFTP, UNKNOWN = Value
 
-  def isSupported(d: ProtocolType) = ! (d == UNKNOWN)
+  def isSupported(d: ProtocolType): Boolean = ! (d == UNKNOWN)
 
   def withNameWithDefault(name: String): Value =
-    values.find(_.toString.toLowerCase == name.toLowerCase()).getOrElse(UNKNOWN)
+    // a little more effective
+    values.find(s => name.equalsIgnoreCase(s.toString)).getOrElse(UNKNOWN)
 }

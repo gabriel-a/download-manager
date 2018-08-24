@@ -8,6 +8,7 @@ import akka.event.Logging
 import akka.stream.alpakka.ftp.FtpFile
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.stream.{ActorMaterializer, IOResult, ThrottleMode}
+import com.download.Logging
 import com.download.conf.{AppConf, ProviderConfig}
 import com.download.dto.FileOrDirModel
 import com.download.model.{DestinationModel, FtpRemoteSettings}
@@ -25,10 +26,14 @@ object FtpActor {
 
 class FtpActor(val provider: ProviderConfig,
                val destinationModel: DestinationModel,
-               val remoteSettings: FtpRemoteSettings) extends Actor with Timers {
+               val remoteSettings: FtpRemoteSettings) extends Actor with Timers with Logging {
+
   implicit val runnableActor: ActorMaterializer = ActorMaterializer()
 
+  // you have two kinds of logging, is it intentional?
   val log = Logging(context.system, this)
+
+  // I think you need to use preStart or postRestart for that
   timers.startSingleTimer(PeriodicKey, FirstTick, 1.millis)
 
   def receive = {
@@ -49,10 +54,10 @@ class FtpActor(val provider: ProviderConfig,
 
   private def throttleAndSave(listOfSource : Source[FtpFile, NotUsed],
                               destination : DestinationModel,
-                              throttleConnections: Int): Unit ={
-    val runnable: Source[FtpFile, NotUsed] = listOfSource
+                              throttleConnections: Int): Unit = {
 
-    runnable
+    // why not inline it?
+    listOfSource
       .throttle(elements = throttleConnections, per = 10.second, maximumBurst = throttleConnections, ThrottleMode.shaping)
       .runForeach(file => {
         log.info(s"Found a new file ${file.name}")
@@ -61,6 +66,8 @@ class FtpActor(val provider: ProviderConfig,
       case Success(value) =>
         log.info(s"Succeeded $value")
       case err =>
+        // it says 'Will try to process again' but there's no difference
+        // between Success branch and this one
         log.error(s"Error!! $err Will try to process again!")
     })
   }
@@ -76,10 +83,12 @@ class FtpActor(val provider: ProviderConfig,
   }
 
   private def getListOfRemoteFiles(path: String,
-                                   filesOnDisc: List[FileOrDirModel]): Source[FtpFile, NotUsed] =
+                                  // don't force it to be a list, Seq is a more generic option
+                                   filesOnDisc: Seq[FileOrDirModel]): Source[FtpFile, NotUsed] =
      remoteSettings.ls(path)
       .filter(_.isFile)
       .filter(file => AppConf.isAllowedExt(file.name, provider.allowedExt))
-      .filter(file => !filesOnDisc.map(_.name).contains(file.name))
+       // exists is just a little faster
+      .filter(file => !filesOnDisc.exists(_.name == file.name))
 
 }

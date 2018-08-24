@@ -28,10 +28,9 @@ class MainServiceTest extends TestKit(ActorSystem(AppConf.DownloadManagerActorSy
     assert(providerNames == actorPaths)
   }
 
-  private def getActorNames(providers: List[ProviderConfig]): List[String] = {
+  private def getActorNames(providers: Seq[ProviderConfig]): Seq[String] = {
     providers
       .map(provider => s"akka://${AppConf.DownloadManagerActorSystemName}/user/downloader-${provider.protocol.toString.toLowerCase}-${provider.id}".toLowerCase)
-
   }
 
 }

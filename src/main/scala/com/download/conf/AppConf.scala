@@ -13,11 +13,11 @@ case class ProviderConfig(id: String,
                           interval: Int,
                           maxConcurrentConnections: Int,
                           basePath: String,
-                          allowedExt: List[String],
+                          allowedExt: Seq[String],
                           username: String,
                           password: String)
 
-case class AppConf(providers: List[ProviderConfig], destination: DestinationModel)
+case class AppConf(providers: Seq[ProviderConfig], destination: DestinationModel)
 
 object AppConf {
   val DownloadManagerActorSystemName = "download-manager"
@@ -34,15 +34,15 @@ object AppConf {
           provider.getInt("interval"),
           provider.getInt("max-concurrent-connections"),
           provider.getString("base-path").trim,
-          provider.getString("allowed-ext").split(",").toList.map(_.trim),
+          provider.getString("allowed-ext").split(",").map(_.trim),
           provider.getString("username").trim,
           provider.getString("password").trim
-        )).toList,
+        )),
       DestinationModel(config.getString("final-destination"), config.getString("tmp-destination"))
     )
   }
 
-  def isAllowedExt(source: String, allowedExtensions: List[String]): Boolean = {
+  def isAllowedExt(source: String, allowedExtensions: Seq[String]): Boolean = {
     if (allowedExtensions.head == "*") return true
     allowedExtensions.exists(endsWith => source.endsWith(endsWith))
   }

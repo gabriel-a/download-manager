@@ -11,15 +11,15 @@ import akka.stream.alpakka.ftp.scaladsl.{Ftp, Ftps, Sftp}
 import akka.stream.alpakka.ftp._
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
+import com.download.Logging
 import com.download.conf.{ProviderConfig, ProviderProtocolType}
 import org.apache.commons.net.PrintCommandListener
 import org.apache.commons.net.ftp.FTPClient
 
 import scala.concurrent.Future
 
-class FtpRemoteSettings(provider : ProviderConfig, destinationModel: DestinationModel) {
+class FtpRemoteSettings(provider : ProviderConfig, destinationModel: DestinationModel) extends Logging {
 
-  val logger = Logger(this.getClass.getSimpleName)
   val ftpSettings = getFtpSetting()
   val sftpSettings = getSftpSettings()
   val ftpsSettings = getFtpsSetting()

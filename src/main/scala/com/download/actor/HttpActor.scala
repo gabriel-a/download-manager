@@ -47,10 +47,10 @@ class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) ex
     }
   }
 
-  private def throttleAndSave(concurrent : Int, listOfUrls: List[URL], currentDownloadDestination: DestinationModel): Unit = {
+  private def throttleAndSave(concurrent : Int, listOfUrls: Seq[URL], currentDownloadDestination: DestinationModel): Unit = {
     implicit val runnableActor: ActorMaterializer = ActorMaterializer()
     implicit val ec: ExecutionContext = ActorSystem().dispatcher
-    Source(listOfUrls)
+    Source(listOfUrls.toList)
       .throttle(concurrent, 5.seconds, concurrent, ThrottleMode.Shaping)
       .mapAsync(concurrent)(url => Future {
         val fileName = getFileNameFromUrl(url)
@@ -65,7 +65,7 @@ class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) ex
 
   private def saveAndMoveStream(inputStream : InputStream, fileName: String, currentDownloadDestination : DestinationModel): Boolean ={
     log.info(s"Downloading $fileName into ${currentDownloadDestination.tmpDestination}")
-    transferTo(inputStream, new java.io.FileOutputStream(s"${currentDownloadDestination.tmpDestination}/${fileName}"))
+    transferTo(inputStream, new java.io.FileOutputStream(s"${currentDownloadDestination.tmpDestination}/$fileName"))
     log.info(s"Transfer done for $fileName moving into ${currentDownloadDestination.finalDestination}")
     new File(currentDownloadDestination.tmpDestination+ "/", fileName).renameTo(new File(currentDownloadDestination.finalDestination + "/", fileName))
   }
