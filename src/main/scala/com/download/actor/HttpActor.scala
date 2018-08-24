@@ -24,6 +24,21 @@ object HttpActor {
   def props(provider: ProviderConfig, destination: DestinationModel): Props = Props(new HttpActor(provider, destination))
 }
 
+/* This one has a lot in common with FtpActor, so I would move the whole sheebang
+ with the 'state machine', i.e.
+
+ def receive = {
+    case FirstTick ⇒
+      doFirstTickStuff
+    case Download ⇒
+      doDownloadStuff
+ }
+
+ to a separate actor. Also the implementations are slightly different
+ which they probably shouldn't be as the basic logic is pretty much
+ protocol-agnostic.
+ */
+
 class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) extends Actor with Timers {
   val log = Logging(context.system, this)
   import com.download.model.Reminder._
@@ -33,7 +48,7 @@ class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) ex
     case FirstTick ⇒
       timers.startSingleTimer(FirstRunKey, Download, 1.millis)
       timers.startPeriodicTimer(PeriodicKey, Download, provider.interval.second)
-    case Download ⇒ {
+    case Download ⇒
       val url = HttpHelper.getUrl(provider)
       log.info(s"Scraping $url")
       val listOfUrls = HttpHelper.parse(url, provider.allowedExt, provider.username, provider.password)
@@ -44,13 +59,12 @@ class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) ex
       throttleAndSave(provider.maxConcurrentConnections,
         filterExistingFiles,
         currentDownloadDestination)
-    }
   }
 
-  private def throttleAndSave(concurrent : Int, listOfUrls: List[URL], currentDownloadDestination: DestinationModel): Unit = {
+  private def throttleAndSave(concurrent : Int, listOfUrls: Seq[URL], currentDownloadDestination: DestinationModel): Unit = {
     implicit val runnableActor: ActorMaterializer = ActorMaterializer()
     implicit val ec: ExecutionContext = ActorSystem().dispatcher
-    Source(listOfUrls)
+    Source(listOfUrls.toList)
       .throttle(concurrent, 5.seconds, concurrent, ThrottleMode.Shaping)
       .mapAsync(concurrent)(url => Future {
         val fileName = getFileNameFromUrl(url)
@@ -65,7 +79,7 @@ class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) ex
 
   private def saveAndMoveStream(inputStream : InputStream, fileName: String, currentDownloadDestination : DestinationModel): Boolean ={
     log.info(s"Downloading $fileName into ${currentDownloadDestination.tmpDestination}")
-    transferTo(inputStream, new java.io.FileOutputStream(s"${currentDownloadDestination.tmpDestination}/${fileName}"))
+    transferTo(inputStream, new java.io.FileOutputStream(s"${currentDownloadDestination.tmpDestination}/$fileName"))
     log.info(s"Transfer done for $fileName moving into ${currentDownloadDestination.finalDestination}")
     new File(currentDownloadDestination.tmpDestination+ "/", fileName).renameTo(new File(currentDownloadDestination.finalDestination + "/", fileName))
   }
