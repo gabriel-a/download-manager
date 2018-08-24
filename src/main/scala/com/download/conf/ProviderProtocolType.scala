@@ -7,6 +7,5 @@ object ProviderProtocolType extends Enumeration {
   def isSupported(d: ProtocolType): Boolean = ! (d == UNKNOWN)
 
   def withNameWithDefault(name: String): Value =
-    // a little more effective
     values.find(s => name.equalsIgnoreCase(s.toString)).getOrElse(UNKNOWN)
 }

@@ -4,10 +4,10 @@ import java.io.{File, InputStream}
 import java.net.URL
 
 import akka.actor.{Actor, ActorSystem, Props, Timers}
-import akka.event.Logging
 import akka.stream.javadsl.Sink
 import akka.stream.scaladsl.Source
 import akka.stream.{ActorMaterializer, ThrottleMode}
+import com.download.Logging
 import com.download.conf.ProviderConfig
 import com.download.model.DestinationModel
 import com.download.service.HttpHelper
@@ -21,36 +21,23 @@ import scala.concurrent.{ExecutionContext, Future}
   * This actor job to handle HTTP & HTTPS
   */
 object HttpActor {
-  def props(provider: ProviderConfig, destination: DestinationModel): Props = Props(new HttpActor(provider, destination))
+  def props(provider: ProviderConfig,
+            destination: DestinationModel): Props = Props(new HttpActor(provider, destination))
 }
 
-/* This one has a lot in common with FtpActor, so I would move the whole sheebang
- with the 'state machine', i.e.
-
- def receive = {
-    case FirstTick ⇒
-      doFirstTickStuff
-    case Download ⇒
-      doDownloadStuff
- }
-
- to a separate actor. Also the implementations are slightly different
- which they probably shouldn't be as the basic logic is pretty much
- protocol-agnostic.
- */
-
-class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) extends Actor with Timers {
-  val log = Logging(context.system, this)
+class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel)
+  extends Actor with Timers with Logging {
   import com.download.model.Reminder._
-  timers.startSingleTimer(PeriodicKey, FirstTick, 500.millis)
+
+  override def preStart(): Unit = {
+    timers.startSingleTimer(FirstRunKey, Download, 1.millis)
+    timers.startPeriodicTimer(PeriodicKey, Download, provider.interval.second)
+  }
 
   def receive = {
-    case FirstTick ⇒
-      timers.startSingleTimer(FirstRunKey, Download, 1.millis)
-      timers.startPeriodicTimer(PeriodicKey, Download, provider.interval.second)
     case Download ⇒
       val url = HttpHelper.getUrl(provider)
-      log.info(s"Scraping $url")
+      logger.info(s"Scraping $url")
       val listOfUrls = HttpHelper.parse(url, provider.allowedExt, provider.username, provider.password)
       val currentDownloadDestination = DestinationModel.getProviderDestinations(provider.id, destinationModel)
       val filesOnDisk = listFilesOnDisk(currentDownloadDestination.finalDestination, currentDownloadDestination.tmpDestination).map(_.name)
@@ -74,13 +61,13 @@ class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel) ex
           }
         )
       })
-      .runWith(Sink.foreach(_ => log.info("Done with downloading the file!")))
+      .runWith(Sink.foreach(_ => logger.info("Done with downloading the file!")))
   }
 
   private def saveAndMoveStream(inputStream : InputStream, fileName: String, currentDownloadDestination : DestinationModel): Boolean ={
-    log.info(s"Downloading $fileName into ${currentDownloadDestination.tmpDestination}")
+    logger.info(s"Downloading $fileName into ${currentDownloadDestination.tmpDestination}")
     transferTo(inputStream, new java.io.FileOutputStream(s"${currentDownloadDestination.tmpDestination}/$fileName"))
-    log.info(s"Transfer done for $fileName moving into ${currentDownloadDestination.finalDestination}")
+    logger.info(s"Transfer done for $fileName moving into ${currentDownloadDestination.finalDestination}")
     new File(currentDownloadDestination.tmpDestination+ "/", fileName).renameTo(new File(currentDownloadDestination.finalDestination + "/", fileName))
   }
 

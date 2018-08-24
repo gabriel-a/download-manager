@@ -26,7 +26,6 @@ object IOHelper extends Logging {
   }
 
   def fileProcessed(fromDestination: String, toDestination: String, fileName: String, bytes: Long = 0L) = {
-    // I think you don't need a '/' for this constructor
     val newFile = new File(toDestination, fileName)
     new File(fromDestination, fileName).renameTo(newFile)
     logger.info(s"Download finished, $bytes bytes processed!")

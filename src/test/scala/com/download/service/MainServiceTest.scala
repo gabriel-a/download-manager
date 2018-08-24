@@ -16,14 +16,11 @@ class MainServiceTest extends TestKit(ActorSystem(AppConf.DownloadManagerActorSy
     TestKit.shutdownActorSystem(system)
   }
 
-  "All actors" should "be created with configuration" in {
+  "All actors" should "be created with configuration and Unknown should not be added as actor" in {
     val appConf = AppConf.apply()
     val providerNames = getActorNames(appConf.providers.filter(p => ProviderProtocolType.isSupported(p.protocol)))
     val actors = GenerateActors.apply()
-
-    //Unknown should not be added as actor
     assert(actors.size === 3)
-
     val actorPaths = actors.map(actor => ""+actor.path)
     assert(providerNames == actorPaths)
   }

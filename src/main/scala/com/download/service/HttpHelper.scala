@@ -33,8 +33,6 @@ object HttpHelper extends Logging {
 
       response.parse().getElementsByTag("a")
         .asScala
-        // .view makes it a lazy stream as Java 8 streams are, so it will
-        // not create a collection on every new .map or .filter call.
         .view
         .map(e => e.attr("href"))
         .filter(s => isValid(getLink(url, s)) && AppConf.isAllowedExt(getLink(url, s), allowedExtensions))
@@ -60,7 +58,6 @@ object HttpHelper extends Logging {
     s"${provider.host}${getPort(provider.port)}/${provider.basePath.replaceFirst("/","")}"
   }
 
-  // just to make it a little more logical
   private def getPort(port: Int): String = {
     port match {
       case 80 | 443 => ""

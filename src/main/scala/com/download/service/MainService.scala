@@ -10,9 +10,6 @@ trait MainService {
   def apply(): Seq[ActorRef] = GenerateActors.apply()
 }
 
-// You can have this Logging trait and mix it to every class you
-// logging in. So you avoid repeating the same 'logger' definition
-// all over again
 object GenerateActors extends MainService with Logging {
 
   override def apply(): Seq[ActorRef] = prepareApplicationAndCreateActors(AppConf.apply())
@@ -23,7 +20,6 @@ object GenerateActors extends MainService with Logging {
 
 
   private def createActors(providers: Seq[ProviderConfig], destination: DestinationModel): Seq[ActorRef] = {
-    // it's a little more concise
     providers
       .filter(provider => ProviderProtocolType.isSupported(provider.protocol))
       .map(provider => {

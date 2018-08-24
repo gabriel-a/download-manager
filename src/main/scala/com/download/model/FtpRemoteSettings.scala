@@ -4,7 +4,6 @@ import java.io.PrintWriter
 import java.net.InetAddress
 
 import akka.NotUsed
-import akka.event.jul.Logger
 import akka.stream.IOResult
 import akka.stream.alpakka.ftp.FtpCredentials.{AnonFtpCredentials, NonAnonFtpCredentials}
 import akka.stream.alpakka.ftp.scaladsl.{Ftp, Ftps, Sftp}

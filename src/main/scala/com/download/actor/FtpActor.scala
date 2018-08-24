@@ -4,7 +4,6 @@ import java.nio.file.Paths
 
 import akka.NotUsed
 import akka.actor.{Actor, Props, Timers}
-import akka.event.Logging
 import akka.stream.alpakka.ftp.FtpFile
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.stream.{ActorMaterializer, IOResult, ThrottleMode}
@@ -30,18 +29,14 @@ class FtpActor(val provider: ProviderConfig,
 
   implicit val runnableActor: ActorMaterializer = ActorMaterializer()
 
-  // you have two kinds of logging, is it intentional?
-  val log = Logging(context.system, this)
-
-  // I think you need to use preStart or postRestart for that
-  timers.startSingleTimer(PeriodicKey, FirstTick, 1.millis)
+  override def preStart(): Unit = {
+    timers.startSingleTimer(FirstRunKey, Download, 1.millis)
+    timers.startPeriodicTimer(PeriodicKey, Download, provider.interval.second)
+  }
 
   def receive = {
-    case FirstTick ⇒
-      timers.startSingleTimer(FirstRunKey, Download, 1.millis)
-      timers.startPeriodicTimer(PeriodicKey, Download, provider.interval.second)
     case Download ⇒
-      log.info(s"${provider.protocol} Download received")
+      logger.info(s"${provider.protocol} Download received")
       val currentDownloadDestination = DestinationModel.getProviderDestinations(provider.id, destinationModel)
       val throttleConnections = provider.maxConcurrentConnections - 1
       val filesOnDisk = listFilesOnDisk(currentDownloadDestination.finalDestination, currentDownloadDestination.tmpDestination)
@@ -56,19 +51,16 @@ class FtpActor(val provider: ProviderConfig,
                               destination : DestinationModel,
                               throttleConnections: Int): Unit = {
 
-    // why not inline it?
     listOfSource
       .throttle(elements = throttleConnections, per = 10.second, maximumBurst = throttleConnections, ThrottleMode.shaping)
       .runForeach(file => {
-        log.info(s"Found a new file ${file.name}")
+        logger.info(s"Found a new file ${file.name}")
         saveAndMoveFile(file, destination)
       }).onComplete({
       case Success(value) =>
-        log.info(s"Succeeded $value")
+        logger.info(s"Succeeded $value")
       case err =>
-        // it says 'Will try to process again' but there's no difference
-        // between Success branch and this one
-        log.error(s"Error!! $err Will try to process again!")
+        logger.warning(s"Error!! $err Will try to process again!")
     })
   }
 
@@ -77,18 +69,16 @@ class FtpActor(val provider: ProviderConfig,
       .runWith(FileIO.toPath(Paths.get(destination.tmpDestination+ "/", file.name))).onComplete {
       case Success(IOResult(count, Success(_))) => fileProcessed(destination.tmpDestination, destination.finalDestination, file.name, count)
       case err =>
-        log.info(s"Error downloading file ${file.name} from ftp server to $destination.tmpDestination - $err")
+        logger.info(s"Error downloading file ${file.name} from ftp server to $destination.tmpDestination - $err")
         removeDestination(s"${destination.tmpDestination}/${file.name}")
     }
   }
 
   private def getListOfRemoteFiles(path: String,
-                                  // don't force it to be a list, Seq is a more generic option
-                                   filesOnDisc: Seq[FileOrDirModel]): Source[FtpFile, NotUsed] =
+                                  filesOnDisc: Seq[FileOrDirModel]): Source[FtpFile, NotUsed] =
      remoteSettings.ls(path)
       .filter(_.isFile)
       .filter(file => AppConf.isAllowedExt(file.name, provider.allowedExt))
-       // exists is just a little faster
       .filter(file => !filesOnDisc.exists(_.name == file.name))
 
 }
