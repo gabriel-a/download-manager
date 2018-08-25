@@ -1,55 +1,43 @@
-package com.download.actor
+package com.download.service.protocols
 
 import java.io.{File, InputStream}
 import java.net.URL
 
-import akka.actor.{Actor, ActorSystem, Props, Timers}
+import akka.actor.{ActorRefFactory, ActorSystem}
 import akka.stream.javadsl.Sink
 import akka.stream.scaladsl.Source
 import akka.stream.{ActorMaterializer, ThrottleMode}
 import com.download.Logging
 import com.download.conf.ProviderConfig
 import com.download.model.DestinationModel
-import com.download.service.HttpHelper
-import com.download.service.IOHelper._
+import com.download.service.{DownloadManagerSettings, HttpHelper}
+import com.download.service.IOHelper.listFilesOnDisk
 import requests.Util.transferTo
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * This actor job to handle HTTP & HTTPS
-  */
-object HttpActor {
-  def props(provider: ProviderConfig,
-            destination: DestinationModel): Props = Props(new HttpActor(provider, destination))
-}
+class HttpRemoteSettings(provider : ProviderConfig,
+                         destinationModel: DestinationModel) extends Logging with DownloadManagerSettings{
 
-class HttpActor(provider: ProviderConfig, destinationModel: DestinationModel)
-  extends Actor with Timers with Logging {
-  import com.download.model.Reminder._
+  override def receive(implicit actorRefFactory: ActorRefFactory): Unit = {
+    val url = HttpHelper.getUrl(provider)
+    logger.info(s"Scraping $url")
+    val listOfUrls = HttpHelper.parse(url, provider.allowedExt, provider.username, provider.password)
+    val currentDownloadDestination = DestinationModel.getProviderDestinations(provider.id, destinationModel)
+    val filesOnDisk = listFilesOnDisk(currentDownloadDestination.finalDestination, currentDownloadDestination.tmpDestination).map(_.name)
+    val filterExistingFiles = listOfUrls.filter(fileUrl => !filesOnDisk.contains(getFileNameFromUrl(fileUrl)))
 
-  override def preStart(): Unit = {
-    timers.startSingleTimer(FirstRunKey, Download, 1.millis)
-    timers.startPeriodicTimer(PeriodicKey, Download, provider.interval.second)
+    throttleAndSave(provider.maxConcurrentConnections,
+      filterExistingFiles,
+      currentDownloadDestination,
+      actorRefFactory)
   }
 
-  def receive = {
-    case Download ⇒
-      val url = HttpHelper.getUrl(provider)
-      logger.info(s"Scraping $url")
-      val listOfUrls = HttpHelper.parse(url, provider.allowedExt, provider.username, provider.password)
-      val currentDownloadDestination = DestinationModel.getProviderDestinations(provider.id, destinationModel)
-      val filesOnDisk = listFilesOnDisk(currentDownloadDestination.finalDestination, currentDownloadDestination.tmpDestination).map(_.name)
-      val filterExistingFiles = listOfUrls.filter(fileUrl => !filesOnDisk.contains(getFileNameFromUrl(fileUrl)))
-
-      throttleAndSave(provider.maxConcurrentConnections,
-        filterExistingFiles,
-        currentDownloadDestination)
-  }
-
-  private def throttleAndSave(concurrent : Int, listOfUrls: Seq[URL], currentDownloadDestination: DestinationModel): Unit = {
-    implicit val runnableActor: ActorMaterializer = ActorMaterializer()
+  private def throttleAndSave(concurrent : Int, listOfUrls: Seq[URL],
+                              currentDownloadDestination: DestinationModel,
+                              actorRefFactory: ActorRefFactory): Unit = {
+    implicit val runnableActor: ActorMaterializer = ActorMaterializer()(actorRefFactory)
     implicit val ec: ExecutionContext = ActorSystem().dispatcher
     Source(listOfUrls.toList)
       .throttle(concurrent, 5.seconds, concurrent, ThrottleMode.Shaping)
