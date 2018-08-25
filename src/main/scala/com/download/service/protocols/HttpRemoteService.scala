@@ -20,7 +20,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class HttpRemoteService(provider : ProviderConfig,
                         destinationModel: DestinationModel) extends Logging with DownloadManagerService{
 
-  override def receive(implicit actorRefFactory: ActorRefFactory): Unit = {
+  override def download(implicit actorRefFactory: ActorRefFactory): Unit = {
     val url = HttpHelper.getUrl(provider)
     logger.info(s"Scraping $url")
     val listOfUrls = HttpHelper.parse(url, provider.allowedExt, provider.username, provider.password)

@@ -33,7 +33,8 @@ class FtpRemoteService(provider : ProviderConfig,
   private val sftpSettings = getSftpSettings()
   private val ftpsSettings = getFtpsSetting()
 
-  def receive(implicit actorRefFactory: ActorRefFactory): Unit ={
+  def download(implicit actorRefFactory: ActorRefFactory): Unit = {
+    logger.info(s"Checking the ${provider.protocol} settings to start downloading.")
     val currentDownloadDestination = DestinationModel.getProviderDestinations(provider.id, destinationModel)
     val throttleConnections = provider.maxConcurrentConnections - 1
     val filesOnDisk = listFilesOnDisk(currentDownloadDestination.finalDestination, currentDownloadDestination.tmpDestination)

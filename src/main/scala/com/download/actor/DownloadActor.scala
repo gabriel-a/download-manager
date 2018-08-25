@@ -8,11 +8,10 @@ import com.download.service.DownloadManagerService
 import scala.concurrent.duration._
 
 object DownloadActor {
-  def props(duration: Int, downloadManagerSettings: DownloadManagerService):
-  Props = Props(new DownloadActor(duration, downloadManagerSettings))
+  def props(duration: Int, downloadManagerService: DownloadManagerService): Props = Props(new DownloadActor(duration, downloadManagerService))
 }
 
-class DownloadActor(duration: Int, downloadManagerSettings: DownloadManagerService)
+class DownloadActor(duration: Int, downloadManagerService: DownloadManagerService)
   extends Actor with Timers with Logging {
 
   override def preStart(): Unit = {
@@ -21,8 +20,7 @@ class DownloadActor(duration: Int, downloadManagerSettings: DownloadManagerServi
   }
 
   def receive = {
-    case Download ⇒
-      downloadManagerSettings.receive
+    case Download ⇒ downloadManagerService.download
   }
 
 }
