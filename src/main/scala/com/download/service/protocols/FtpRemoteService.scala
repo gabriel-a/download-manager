@@ -16,7 +16,7 @@ import com.download.Logging
 import com.download.conf.{AppConf, ProviderConfig, ProviderProtocolType}
 import com.download.dto.FileOrDirModel
 import com.download.model.DestinationModel
-import com.download.service.DownloadManagerSettings
+import com.download.service.DownloadManagerService
 import com.download.service.IOHelper.{fileProcessed, listFilesOnDisk, removeDestination}
 import org.apache.commons.net.PrintCommandListener
 import org.apache.commons.net.ftp.FTPClient
@@ -26,8 +26,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 
-class FtpRemoteSettings(provider : ProviderConfig,
-                        destinationModel: DestinationModel) extends Logging with DownloadManagerSettings {
+class FtpRemoteService(provider : ProviderConfig,
+                       destinationModel: DestinationModel) extends Logging with DownloadManagerService {
 
   private val ftpSettings = getFtpSetting()
   private val sftpSettings = getSftpSettings()

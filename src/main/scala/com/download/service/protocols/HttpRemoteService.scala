@@ -10,15 +10,15 @@ import akka.stream.{ActorMaterializer, ThrottleMode}
 import com.download.Logging
 import com.download.conf.ProviderConfig
 import com.download.model.DestinationModel
-import com.download.service.{DownloadManagerSettings, HttpHelper}
+import com.download.service.{DownloadManagerService, HttpHelper}
 import com.download.service.IOHelper.listFilesOnDisk
 import requests.Util.transferTo
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpRemoteSettings(provider : ProviderConfig,
-                         destinationModel: DestinationModel) extends Logging with DownloadManagerSettings{
+class HttpRemoteService(provider : ProviderConfig,
+                        destinationModel: DestinationModel) extends Logging with DownloadManagerService{
 
   override def receive(implicit actorRefFactory: ActorRefFactory): Unit = {
     val url = HttpHelper.getUrl(provider)

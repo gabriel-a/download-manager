@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import com.download.actor.{DownloadActor}
 import com.download.conf.{AppConf, ProviderConfig, ProviderProtocolType}
 import com.download.model.DestinationModel
-import com.download.service.protocols.{FtpRemoteSettings, HttpRemoteSettings}
+import com.download.service.protocols.{FtpRemoteService, HttpRemoteService}
 import com.download.{Logging, Terminator}
 
 trait MainService {
@@ -29,11 +29,11 @@ object GenerateActors extends MainService with Logging {
         val actorProp = provider.protocol match {
           case ProviderProtocolType.FTP | ProviderProtocolType.FTPS | ProviderProtocolType.SFTP => {
             logger.info(s"Start FTP/FTPS/SFTP Actor")
-            DownloadActor.props(provider.interval, new FtpRemoteSettings(provider, destination))
+            DownloadActor.props(provider.interval, new FtpRemoteService(provider, destination))
           }
           case ProviderProtocolType.HTTP => {
             logger.info(s"Start HTTP Actor")
-            DownloadActor.props(provider.interval, new HttpRemoteSettings(provider, destination))
+            DownloadActor.props(provider.interval, new HttpRemoteService(provider, destination))
           }
         }
         val actorRef = system.actorOf(actorProp, actorName)

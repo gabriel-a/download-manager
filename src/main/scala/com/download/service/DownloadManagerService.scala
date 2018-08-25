@@ -2,6 +2,6 @@ package com.download.service
 
 import akka.actor.ActorRefFactory
 
-trait DownloadManagerSettings {
+trait DownloadManagerService {
   def receive(implicit actorRefFactory: ActorRefFactory)
 }
